@@ -5,4 +5,9 @@ torchvision
 openai-whisper
 pyannote.audio
 soundfile
-speechbrain==0.5.16 
+speechbrain==0.5.16
+
+# Server dependencies
+fastapi
+uvicorn
+python-multipart
