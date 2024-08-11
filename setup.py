@@ -1,27 +1,33 @@
 import os
-
-import pkg_resources
 from setuptools import setup, find_packages
+
+# Read the contents of your README file
+with open('README.md', 'r', encoding='utf-8') as f:
+    long_description = f.read()
+
+# Read requirements from requirements.txt
+def read_requirements():
+    with open('requirements.txt', 'r') as req_file:
+        return [line.strip() for line in req_file if line.strip() and not line.startswith('#')]
 
 setup(
     name="pyannote-whisper",
     py_modules=["pyannote-whisper"],
     version="1.0",
     description="Speech Recognition plus diarization",
-    readme="README.md",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     python_requires=">=3.7",
     author="Ruiqing",
     url="https://github.com/yinruiqing/pyannote-whisper",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
-    install_requires=[
-        str(r)
-        for r in pkg_resources.parse_requirements(
-            open(os.path.join(os.path.dirname(__file__), "requirements.txt"))
-        )
-    ],
+    install_requires=read_requirements(),
     entry_points={
-        'console_scripts': ['pyannote-whisper=pyannote_whisper.cli.transcribe:cli'],
+        'console_scripts': [
+            'pyannote-whisper=pyannote_whisper.cli.transcribe:cli',
+            'pyannote-whisper-serve=pyannote_whisper.serve:main'
+        ],
     },
     include_package_data=True,
     extras_require={'dev': ['pytest']},
