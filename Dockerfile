@@ -19,9 +19,6 @@ COPY requirements.txt .
 # Install the requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download the OpenAI medium.en Whisper model
-RUN python -c "import whisper; whisper.load_model('medium.en', download_root='/app')"
-
 # Now copy the rest of the project
 COPY . .
 

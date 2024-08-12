@@ -1,4 +1,5 @@
 setuptools
+accelerate
 numpy
 torch
 torchvision

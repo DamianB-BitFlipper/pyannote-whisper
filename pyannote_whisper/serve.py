@@ -1,4 +1,5 @@
 import os
+import torch
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -14,24 +15,25 @@ from pyannote_whisper.utils import diarize_text
 
 # Initialize the diarization and transcription pipelines
 diarization_pipeline = None
-model = None
+transcription_pipeline = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    global diarization_pipeline, model
+    global diarization_pipeline, transcription_pipeline
 
-    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
-    diarization_pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization",
-                                        use_auth_token=os.environ.get('HF_TOKEN'))
+    assert device != "cpu", "No GPU available"
 
-    # Load the local Whisper model
-    # model_path = Path("/app/medium.en.pt")
-    # if not model_path.exists():
-    #     raise FileNotFoundError(f"Whisper model not found at {model_path}")
-    # model = whisper.load_model(model_path)
+    diarization_model_id = "pyannote/speaker-diarization"
+    diarization_pipeline = Pipeline.from_pretrained(
+        diarization_model_id,
+        use_auth_token=os.environ.get('HF_TOKEN'),
+    )
+    diarization_pipeline.to(device)
+
     transcription_model_id = "distil-whisper/distil-large-v3"
     transcription_model = AutoModelForSpeechSeq2Seq.from_pretrained(
         transcription_model_id,
@@ -39,7 +41,7 @@ async def lifespan(app: FastAPI):
         low_cpu_mem_usage=True,
         use_safetensors=True,
     )
-    transcription_pipeline.to(device)
+    transcription_model.to(device)
 
     transcription_processor = AutoProcessor.from_pretrained(transcription_model_id)
 
@@ -97,9 +99,9 @@ async def transcribe(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail=f"Error converting file: {e.stderr.decode()}")
 
         # Process the audio file
-        asr_result = model.transcribe(str(temp_output))
+        transcription_result = transcription_pipeline(str(temp_output), return_timestamps=True)
         diarization_result = diarization_pipeline(str(temp_output))
-        final_result = diarize_text(asr_result, diarization_result)
+        final_result = diarize_text(transcription_result, diarization_result)
 
         # Format the results
         results = []
