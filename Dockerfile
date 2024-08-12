@@ -19,6 +19,11 @@ COPY requirements.txt .
 # Install the requirements
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Download the transcription models during build
+RUN python -c "from transformers import AutoModelForSpeechSeq2Seq; model = AutoModelForSpeechSeq2Seq.from_pretrained('distil-whisper/distil-large-v3'); model.save_pretrained('/app/models/distil-large-v3')"
+
+RUN python -c "from transformers import AutoProcessor; processor = AutoProcessor.from_pretrained('distil-whisper/distil-large-v3'); processor.save_pretrained('/app/models/distil-large-v3')"
+
 # Now copy the rest of the project
 COPY . .
 

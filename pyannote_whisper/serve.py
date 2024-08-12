@@ -22,19 +22,23 @@ async def lifespan(app: FastAPI):
     # Startup
     global diarization_pipeline, transcription_pipeline
 
+    # Sanity checks
+    assert os.environ.get('HF_TOKEN') is not None, "Hugging Face API token not set"
+
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
 
     assert device != "cpu", "No GPU available"
 
-    diarization_model_id = "pyannote/speaker-diarization"
+    diarization_model_id = "pyannote/speaker-diarization-3.1"
     diarization_pipeline = Pipeline.from_pretrained(
         diarization_model_id,
         use_auth_token=os.environ.get('HF_TOKEN'),
     )
     diarization_pipeline.to(device)
 
-    transcription_model_id = "distil-whisper/distil-large-v3"
+    # Load the transcription model from disk
+    transcription_model_id = "/app/models/distil-large-v3"
     transcription_model = AutoModelForSpeechSeq2Seq.from_pretrained(
         transcription_model_id,
         torch_dtype=torch_dtype,
